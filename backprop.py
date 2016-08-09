@@ -2,13 +2,14 @@ from __future__ import division
 import numpy as np
 import wx
 import math
+import time
 
 
 class DisplayPanel(wx.Frame):
 
     ENV = None
     def __init__(self, title):
-        super(DisplayPanel,self).__init__(None, title=title, size = (680,450))
+        super(DisplayPanel,self).__init__(None, title=title, size = (800,550))
         h = 450
         w = 500
 
@@ -16,7 +17,7 @@ class DisplayPanel(wx.Frame):
         vbox1 = wx.BoxSizer(wx.VERTICAL)
         vbox2 = wx.BoxSizer(wx.VERTICAL)
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        neuron_group, self.network = self.display_group(["I1", "H1","O1", "I2", "H2", "O2"], (2,6))
+        neuron_group, self.network = self.display_group(["I1", "H1","O1", "I2", "H2", "O2"], (2,6), (0,30))
         hbox1.Add(neuron_group)
 
         error_group, self.error = self.display_group(["EO1", "EO2"], (2,2 ))
@@ -28,7 +29,10 @@ class DisplayPanel(wx.Frame):
 
         train_btn = wx.Button(self.panel, label='>>', size=(-1,30))
         train_btn.Bind(wx.EVT_BUTTON,self.run)
+        step_btn = wx.Button(self.panel, label='>', size=(-1,30))
+        step_btn.Bind(wx.EVT_BUTTON,self.step)
         vbox1.Add(train_btn)
+        vbox1.Add(step_btn)
         vbox1.Add(hbox1)
         vbox1.AddSpacer((0,50))
         vbox1.Add(W_group)
@@ -58,85 +62,20 @@ class DisplayPanel(wx.Frame):
         target = np.matrix([[.01], [.99]])
         brain = ANN(W1, W2, 4, .5)
         brain.setTarget(target)
+        self.input = np.matrix([[.05], [.10], [.35]])
+        self.network['I1'].Clear()
+        self.network['I1'].AppendText(str(self.input[0,0]))
+        self.network['I2'].Clear()
+        self.network['I2'].AppendText(str(self.input[1,0]))
         return brain
-
-    def load_player_stats(self,e):
-        pass
-        """
-        #player = self.playerManager.getActivePlayer()
-        for box in self.properties_txtCtrl:
-            box.Clear()
-        self.properties_txtCtrl[0].AppendText(str(player.getID()))
-        self.properties_txtCtrl[1].AppendText(str(player.getType()))
-        self.properties_txtCtrl[2].AppendText(str(player.mass))
-        self.properties_txtCtrl[3].AppendText(str(player.position))
-        self.properties_txtCtrl[4].AppendText(str(player.velocity))
-
-        self.properties_txtCtrl[0].SetEditable(False)
-        self.properties_txtCtrl[1].SetEditable(False)
-
-        #type = player.getType()
-        #if(type == "smartPlayer"):
-        #    self.properties_txtCtrl[5].AppendText(str(player.sense.net_visible_f))
-
-        #self.properties_txtCtrl[0]=str(player
-
-    """
-
-    def load_player_properties(self):
-        properties = ["ID:", "Type:", "Mass:","position","velocity", "net visible"]
-        gs = wx.GridSizer(len(properties),2)
-        self.properties_txtCtrl = []
-        for property in properties:
-            txt = wx.StaticText(self.playerPanel,label=property)
-            gs.Add(txt)
-            txt_ctrl = wx.TextCtrl(self.playerPanel,size=(100,-1))
-            self.properties_txtCtrl.append(txt_ctrl)
-            gs.Add(txt_ctrl)
-
-        return gs
-
-    def set_player_stats(self, e):
-        pass
-
-        """"
-        player = self.playerManager.getActivePlayer()
-        player.mass = int(self.properties_txtCtrl[2].GetValue())
-
-        type = player.getType()
-        if(type == "smartPlayer"):
-            new_val = self.properties_txtCtrl[5].GetValue()
-            if (new_val == "False"):
-                player.sense.net_visible_f = False
-                player.sense.remove_net_visual()
-            elif (new_val == "True"):
-                player.sense.net_visible_f = True
-                player.sense.restore_net_visual()
-        """
-
-    def SetSpeed(self, e):
-        state1 = self.rb1.GetValue()
-        state2 = self.rb2.GetValue()
-        state3 = self.rb4.GetValue()
-        state4 = self.rb8.GetValue()
-
-        if state1:
-            self.ENV.rate = 200
-        elif state2:
-            self.ENV.rate = 400
-        elif state3:
-            self.ENV.rate = 800
-        elif state4:
-            self.ENV.rate = 1600
 
     def run(self, e):
         nTrain = 2
-        input = np.matrix([[.05], [.10], [.35]])
-        self.network['I1'].Clear()
-        self.network['I1'].AppendText(str(input[0,0]))
-        self.network['I2'].Clear()
-        self.network['I2'].AppendText(str(input[1,0]))
-        self.brain.run(input, (self.network, self.error, self.dW, self.W), nTrain)
+        self.brain.run(self.input, (self.network, self.error, self.dW, self.W), nTrain)
+
+
+    def step(self, e):
+        self.brain.paused = False
 
 
 class ANN:
@@ -240,26 +179,10 @@ class ANN:
         for generation in range(1, nTrain):
             net_h = self.feedForwardNet1(input)
             out_h = self.activate(net_h)  ## net_h[0] is neth1
-            display['H1'].Clear()
-            display['H2'].Clear()
-            display['H1'].AppendText(str(out_h[0])[1:9])
-            display['H2'].AppendText(str(out_h[1])[1:9])
-
             netO1 = np.matrix([out_h[0], out_h[1], [.60]])
             netO2 = self.feedForwardNet2(netO1)
             out_O = self.activate(netO2)  # out2_1 -> out_O[0]
-            display['O1'].Clear()
-            display['O2'].Clear()
-            display['O1'].AppendText(str(out_O[0])[1:9])
-            display['O2'].AppendText(str(out_O[1])[1:9])
-
-
             error, error_list = self.error(out_O)
-            error_txt['EO1'].Clear()
-            error_txt['EO2'].Clear()
-            error_txt['EO1'].AppendText(str(error_list[0])[1:9])
-            error_txt['EO2'].AppendText(str(error_list[1])[1:9])
-
             dEdOut = self.dE_dout(out_O, self.target)
             dOdnet = self.dE_dnet(out_O)
             dWL2 = self.calc_dWL2(out_h, dEdOut, dOdnet)
@@ -320,23 +243,15 @@ class ANN:
 
             ##print('---------------Variablw to update w4------------------')
 
-            dw_weights['dW1'].Clear()
-            dw_weights['dW2'].Clear()
-            dw_weights['dW3'].Clear()
-            dw_weights['dW4'].Clear()
-            dw_weights['dW5'].Clear()
-            dw_weights['dW6'].Clear()
-            dw_weights['dW7'].Clear()
-            dw_weights['dW8'].Clear()
+            i = 0
+            for key in display.iterkeys():
+                display[key].Clear()
+                display[key].AppendText(str(out_h[i])[1:9])
+                i %= 2
 
-            dw_weights['dW1'].AppendText(str(dW1[0])[1:9])
-            dw_weights['dW2'].AppendText(str(dW2[0])[1:9])
-            dw_weights['dW3'].AppendText(str(dW1[0])[1:9])
-            dw_weights['dW4'].AppendText(str(dW2[0])[1:9])
-            dw_weights['dW5'].AppendText(str(dW1[0])[1:9])
-            dw_weights['dW6'].AppendText(str(dW2[0])[1:9])
-            dw_weights['dW7'].AppendText(str(dW1[0])[1:9])
-            dw_weights['dW8'].AppendText(str(dW2[0])[1:9])
+            for key in dw_weights.iterkeys():
+                dw_weights[key].Clear()
+                dw_weights[key].AppendText(str(dW1[0])[1:9])
 
             weight_list = self.update_Weights(dW1, dW2, dW3, dW4, dWL2[0, 0], dWL2[0, 1], dWL2[1, 0], dWL2[1, 1])
             self.display_Weights(weights, weight_list)
@@ -346,12 +261,10 @@ class ANN:
             if (generation % 100 == 0):
                 print(error)
 
-
-
-
-
-
-
+    def pause(self):
+        self.paused = True
+        while self.paused:
+            pass
 
 app = wx.App()
 controll = DisplayPanel('BackPropogator')
