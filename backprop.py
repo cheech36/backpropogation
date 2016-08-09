@@ -295,8 +295,8 @@ class ANN:
                 display_dict['dW4'] = str(dW4)[1:precision]
                 display_dict['dW5'] = str(dWL2[0,0])[1:precision]
                 display_dict['dW6'] = str(dWL2[0,1])[1:precision]
-                display_dict['dW7'] = str(dWL2[0,1])[1:precision]
-                display_dict['dW8'] = str(dWL2[0,1])[1:precision]
+                display_dict['dW7'] = str(dWL2[1,0])[1:precision]
+                display_dict['dW8'] = str(dWL2[1,1])[1:precision]
 
 
         return out_h, out_O, error_list
